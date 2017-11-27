@@ -10,13 +10,12 @@ import (
 	"github.com/Azure/go-autorest/autorest/utils"
 )
 
-func checkTagFlag(tagValue *string) bool {
+// Function to analyze a bool Flag value containes in *sring and return true if it is set
+// Default Value for nil or not convertable is false
+func isFlagged(tagValue *string) bool {
 	if tagValue == nil {
-		fmt.Println("tagvalue is nil")
 		return false
 	}
-
-	fmt.Println("check flag %s", tagValue)
 	b, err := strconv.ParseBool(*tagValue)
 	if err == nil {
 		return b
@@ -41,11 +40,8 @@ func main() {
 		for _, vm := range *list.Value {
 			//display VMs only if they contains specific tags
 			if vm.Tags != nil {
-				fmt.Println("analyze tags")
-				var t = *vm.Tags //TODO Refactor and dereference without additional variable
-				if val, ok := t["scaleGroup"]; ok {
-					fmt.Println("found value")
-					if checkTagFlag(val) {
+				if val, ok := (*vm.Tags)["scaleGroup"]; ok && isFlagged(val) {
+					if true {
 						printVM(vm)
 					}
 				} else {
