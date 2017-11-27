@@ -19,20 +19,21 @@ func isFlagged(tagValue *string) bool {
 	b, err := strconv.ParseBool(*tagValue)
 	if err == nil {
 		return b
-	} else {
-		return false
 	}
+	return false
 }
 
 func main() {
 
 	//fmt.Printf("German Cloud: %+v\n", azure.GermanCloud)
 
+	//TODO add ENV Flag to identify GErman or Global Azure CLoud
 	authorizer, _ := utils.GetAuthorizer(azure.GermanCloud)
 	vmClient := compute.NewVirtualMachinesClient(os.Getenv("AZURE_SUBSCRIPTION_ID"))
 	vmClient.Authorizer = authorizer
 	vmClient.BaseURI = azure.GermanCloud.ResourceManagerEndpoint
 
+	//TODO find a way to receive VMs by using a query
 	list, err := vmClient.ListAll()
 	onErrorFail(err, "ListAll failed")
 	if list.Value != nil && len(*list.Value) > 0 {
@@ -41,15 +42,12 @@ func main() {
 			//display VMs only if they contains specific tags
 			if vm.Tags != nil {
 				if val, ok := (*vm.Tags)["scaleGroup"]; ok && isFlagged(val) {
-					if true {
-						printVM(vm)
-					}
+					printVM(vm)
 				} else {
 					if vm.Name != nil {
-						fmt.Println("%s is not  part of target VMs", *vm.Name)
+						fmt.Printf("%s is not  part of target VMs", *vm.Name)
 					}
 				}
-
 			}
 		}
 	} else {
@@ -59,6 +57,7 @@ func main() {
 
 // printVM prints basic info about a Virtual Machine.
 func printVM(vm compute.VirtualMachine) {
+	//see https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachine for details
 	tags := "\n"
 	if vm.Tags == nil {
 		tags += "\t\tNo tags yet\n"
@@ -68,13 +67,23 @@ func printVM(vm compute.VirtualMachine) {
 		}
 	}
 	fmt.Printf("Virtual machine '%s'\n", *vm.Name)
+
+	//see https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachineProperties
+	var vmProps = *vm.VirtualMachineProperties
+	var test = (*vmProps.HardwareProfile).VMSize
 	elements := map[string]interface{}{
-		"ID":       *vm.ID,
-		"Type":     *vm.Type,
-		"Location": *vm.Location,
-		"Tags":     tags}
+		"ID":                *vm.ID,
+		"Type":              *vm.Type,
+		"Location":          *vm.Location,
+		"Tags":              tags,
+		"ProvisioningState": *vmProps.ProvisioningState,
+		"Computername":      (*vmProps.OsProfile).ComputerName,
+		"OS":                (*(*vmProps.StorageProfile).OsDisk).OsType,
+
+		"VMSize": (*vmProps.HardwareProfile).VMSize, //compare with const values from https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachineSizeTypes
+		"test":   test}
 	for k, v := range elements {
-		fmt.Printf("\t%s: %s\n", k, v)
+		fmt.Printf("\t%s: %s\n\n\n", k, v)
 	}
 }
 
