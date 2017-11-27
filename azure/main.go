@@ -3,11 +3,27 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv" //for parsebool
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/utils"
 )
+
+func checkTagFlag(tagValue *string) bool {
+	if tagValue == nil {
+		fmt.Println("tagvalue is nil")
+		return false
+	}
+
+	fmt.Println("check flag %s", tagValue)
+	b, err := strconv.ParseBool(*tagValue)
+	if err == nil {
+		return b
+	} else {
+		return false
+	}
+}
 
 func main() {
 
@@ -23,7 +39,22 @@ func main() {
 	if list.Value != nil && len(*list.Value) > 0 {
 		fmt.Println("VMs in subscription")
 		for _, vm := range *list.Value {
-			printVM(vm)
+			//display VMs only if they contains specific tags
+			if vm.Tags != nil {
+				fmt.Println("analyze tags")
+				var t = *vm.Tags //TODO Refactor and dereference without additional variable
+				if val, ok := t["scaleGroup"]; ok {
+					fmt.Println("found value")
+					if checkTagFlag(val) {
+						printVM(vm)
+					}
+				} else {
+					if vm.Name != nil {
+						fmt.Println("%s is not  part of target VMs", *vm.Name)
+					}
+				}
+
+			}
 		}
 	} else {
 		fmt.Println("There are no VMs in this subscription")
@@ -36,8 +67,8 @@ func printVM(vm compute.VirtualMachine) {
 	if vm.Tags == nil {
 		tags += "\t\tNo tags yet\n"
 	} else {
-		for k, v := range *vm.Tags {
-			tags += fmt.Sprintf("\t\t%s = %s\n", k, *v)
+		for key, value := range *vm.Tags {
+			tags += fmt.Sprintf("\t\t%s = %s\n", key, *value)
 		}
 	}
 	fmt.Printf("Virtual machine '%s'\n", *vm.Name)
