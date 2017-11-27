@@ -57,6 +57,7 @@ func main() {
 
 // printVM prints basic info about a Virtual Machine.
 func printVM(vm compute.VirtualMachine) {
+	fmt.Println("\n---------------------------------------------------------------")
 	//see https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachine for details
 	tags := "\n"
 	if vm.Tags == nil {
@@ -70,21 +71,34 @@ func printVM(vm compute.VirtualMachine) {
 
 	//see https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachineProperties
 	var vmProps = *vm.VirtualMachineProperties
-	var test = (*vmProps.HardwareProfile).VMSize
+	var test *[]compute.InstanceViewStatus
+	if vmProps.InstanceView != nil {
+		test = (*vmProps.InstanceView).Statuses
+	}
+	if test != nil {
+		for _, status := range *test {
+			fmt.Printf("Status %s, Message %s", status.Code, status.Message)
+		}
+	} else {
+		fmt.Println("no status found")
+	}
 	elements := map[string]interface{}{
 		"ID":                *vm.ID,
 		"Type":              *vm.Type,
 		"Location":          *vm.Location,
 		"Tags":              tags,
 		"ProvisioningState": *vmProps.ProvisioningState,
-		"Computername":      (*vmProps.OsProfile).ComputerName,
-		"OS":                (*(*vmProps.StorageProfile).OsDisk).OsType,
+		"Computername":      *(*vmProps.OsProfile).ComputerName,
+		"OS-TYpe":           (*(*vmProps.StorageProfile).OsDisk).OsType,
+		"VMSize":            (*vmProps.HardwareProfile).VMSize, //compare with const values from https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachineSizeTypes
+		//"OS-DiskName":       *(*(*vmProps.StorageProfile).OsDisk).Name,
+		//"Instance Status": (*(*vmProps.InstanceView).Statuses),
 
-		"VMSize": (*vmProps.HardwareProfile).VMSize, //compare with const values from https://godoc.org/github.com/Azure/azure-sdk-for-go/arm/compute#VirtualMachineSizeTypes
-		"test":   test}
+		"test": test}
 	for k, v := range elements {
-		fmt.Printf("\t%s: %s\n\n\n", k, v)
+		fmt.Printf("\t%s: %s\n", k, v)
 	}
+	fmt.Println("---------------------------------------------------------------")
 }
 
 // onErrorFail prints a failure message and exits the program if err is not nil.
