@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/paulrademacher/climenu"
+	"github.com/blndev/climenu"
 )
 
 func callback(id string) {
